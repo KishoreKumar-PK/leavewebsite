@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - Student Leave Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #ddd;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .approve {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .reject {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .approve:hover {
+            background-color: #218838;
+        }
+
+        .reject:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <h2>Staff Dashboard - Student Leave Management</h2>
+
+    <div class="container">
+        <!-- Tab Buttons -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="pending">Pending Leaves</button>
+            <button class="tab-btn" data-tab="approved">Approved Leaves</button>
+        </div>
+
+        <!-- Pending Leaves Section -->
+        <div id="pending" class="tab-content active">
+            <h3>Pending Leave Requests</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>RollNo</th>
+                        <th>Student Name</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="pending-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Approved Leaves Section -->
+        <div id="approved" class="tab-content">
+            <h3>Approved Leaves</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>RollNo</th>
+                        <th>Student Name</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody id="approved-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            loadPendingLeaves();
+            loadApprovedLeaves();
+
+            // Tab switching logic
+            const tabButtons = document.querySelectorAll(".tab-btn");
+            const tabContents = document.querySelectorAll(".tab-content");
+
+            tabButtons.forEach(button => {
+                button.addEventListener("click", () => {
+                    tabButtons.forEach(btn => btn.classList.remove("active"));
+                    tabContents.forEach(content => content.classList.remove("active"));
+
+                    button.classList.add("active");
+                    document.getElementById(button.dataset.tab).classList.add("active");
+                });
+            });
+        });
+
+        function loadPendingLeaves() {
+            fetch("http://localhost:3000/api/staff/leave/pending")
+                .then(res => res.json())
+                .then(data => {
+                    let table = document.getElementById("pending-body");
+                    table.innerHTML = "";
+                    if (data.length === 0) {
+                        table.innerHTML = `<tr><td colspan="4">No pending leave requests</td></tr>`;
+                    } else {
+                        data.forEach(leave => {
+                            table.innerHTML += `
+                                <tr>
+                                    <td>${leave.id}</td>
+                                    <td>${leave.student_name}</td>
+                                    <td>${leave.leave_reason}</td>
+                                    <td>
+                                        <button class="btn approve" onclick="updateLeave(${leave.id}, 'approved')">Approve</button>
+                                        <button class="btn reject" onclick="updateLeave(${leave.id}, 'rejected')">Reject</button>
+                                    </td>
+                                </tr>`;
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching pending leaves:", error);
+                    alert("Failed to load pending leaves. Please check your server.");
+                });
+        }
+
+        function loadApprovedLeaves() {
+            fetch("http://localhost:3000/api/staff/leave/approved")
+                .then(res => res.json())
+                .then(data => {
+                    let table = document.getElementById("approved-body");
+                    table.innerHTML = "";
+                    if (data.length === 0) {
+                        table.innerHTML = `<tr><td colspan="3">No approved leave requests</td></tr>`;
+                    } else {
+                        data.forEach(leave => {
+                            table.innerHTML += `
+                                <tr>
+                                    <td>${leave.id}</td>
+                                    <td>${leave.student_name}</td>
+                                    <td>${leave.leave_reason}</td>
+                                </tr>`;
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching approved leaves:", error);
+                    alert("Failed to load approved leaves. Please check your server.");
+                });
+        }
+
+        function updateLeave(id, status) {
+            fetch("http://localhost:3000/api/staff/leave/update", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ leave_id: id, status })
+            })
+            .then(res => res.json())
+            .then(response => {
+                alert(`Leave request ${status.toUpperCase()} successfully!`);
+                loadPendingLeaves();
+                loadApprovedLeaves();
+            })
+            .catch(error => {
+                console.error("Error updating leave:", error);
+                alert("Failed to update leave status.");
+            });
+        }
+    </script>
+</body>
+</html>

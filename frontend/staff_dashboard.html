@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - Student Leave Management</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .approve {
+            background-color: #28a745;
+            color: white;
+        }
+        .reject {
+            background-color: #dc3545;
+            color: white;
+        }
+        .approve:hover {
+            background-color: #218838;
+        }
+        .reject:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <h2>Staff Dashboard - Student Leave Management</h2>
+
+    <div class="container">
+        <h3>Pending Leave Requests</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Student Name</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="pending-body"></tbody>
+        </table>
+
+        <h3>Approved Leaves</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Student Name</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody id="approved-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const socket = io("http://localhost:4000"); // Connect to backend
+
+        function renderPendingLeaves(leaves) {
+            let table = document.getElementById("pending-body");
+            table.innerHTML = "";
+            if (leaves.length === 0) {
+                table.innerHTML = `<tr><td colspan="4">No pending leave requests</td></tr>`;
+            } else {
+                leaves.forEach(leave => {
+                    table.innerHTML += `
+                        <tr>
+                            <td>${leave.id}</td>
+                            <td>${leave.student_name}</td>
+                            <td>${leave.reason}</td>
+                            <td>
+                                <button class="btn approve" onclick="updateLeave(${leave.id}, 'approved')">Approve</button>
+                                <button class="btn reject" onclick="updateLeave(${leave.id}, 'rejected')">Reject</button>
+                            </td>
+                        </tr>`;
+                });
+            }
+        }
+
+        function renderApprovedLeaves(leaves) {
+            let table = document.getElementById("approved-body");
+            table.innerHTML = "";
+            if (leaves.length === 0) {
+                table.innerHTML = `<tr><td colspan="3">No approved leave requests</td></tr>`;
+            } else {
+                leaves.forEach(leave => {
+                    table.innerHTML += `
+                        <tr>
+                            <td>${leave.id}</td>
+                            <td>${leave.student_name}</td>
+                            <td>${leave.reason}</td>
+                        </tr>`;
+                });
+            }
+        }
+
+        function updateLeave(id, status) {
+            fetch("http://localhost:4000/update-leave", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ leave_id: id, status })
+            })
+            .then(res => res.json())
+            .then(response => {
+                alert(`Leave request ${status.toUpperCase()} successfully!`);
+            })
+            .catch(error => {
+                console.error("Error updating leave:", error);
+                alert("Failed to update leave status.");
+            });
+        }
+
+        // Listen for real-time updates
+        socket.on("updatePendingLeaves", (pendingLeaves) => {
+            renderPendingLeaves(pendingLeaves);
+        });
+
+        socket.on("updateApprovedLeaves", (approvedLeaves) => {
+            renderApprovedLeaves(approvedLeaves);
+        });
+    </script>
+</body>
+</html>

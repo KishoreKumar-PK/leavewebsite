@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Leave Form</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(to top, yellow, orange, red);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .container {
+        width: 100%;
+        max-width: 500px;
+        padding: 20px;
+      }
+      .form-container {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        animation: fadeIn 0.8s ease-in-out;
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #ff4b2b;
+      }
+      .form-group {
+        margin-bottom: 10px;
+      }
+      label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 3px;
+      }
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .form-row {
+        display: flex;
+        gap: 10px;
+      }
+      .form-row .form-group {
+        flex: 1;
+      }
+      button {
+        width: 100%;
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.3s ease-in-out;
+      }
+      button:hover {
+        background: linear-gradient(135deg, #ff4b2b, #ff416c);
+        transform: scale(1.05);
+      }
+      .leave-count {
+        margin-top: 20px;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        text-align: center;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="form-container">
+        <h2>Student Leave Form</h2>
+        <form id="leaveForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="studentName">Name</label>
+              <input type="text" id="studentName" required />
+            </div>
+            <div class="form-group">
+              <label for="studentRollNo">Roll No</label>
+              <input type="text" id="studentRollNo" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="department">Department</label>
+              <input type="text" id="department" required />
+            </div>
+            <div class="form-group">
+              <label for="year">Year</label>
+              <select id="year" required>
+                <option value="" disabled selected>Select your year</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="leaveType">Leave Type</label>
+            <select id="leaveType" required>
+              <option value="" disabled selected>Select leave type</option>
+              <option value="casual">Casual Leave</option>
+              <option value="phone">Phone Leave</option>
+              <option value="on-duty">On Duty</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fromDate">From Date</label>
+              <input type="date" id="fromDate" required />
+            </div>
+            <div class="form-group">
+              <label for="toDate">To Date</label>
+              <input type="date" id="toDate" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reason">Reason for Leave</label>
+            <textarea id="reason" rows="3" required></textarea>
+          </div>
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+      <div class="leave-count" id="leaveCount">
+        Casual Leave: 0 | Phone Leave: 0 | On Duty: 0
+      </div>
+    </div>
+
+    <script>
+      document.getElementById("leaveForm").addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const formData = {
+          student_name: document.getElementById("studentName").value,
+          student_rollno: document.getElementById("studentRollNo").value.toLowerCase(),
+          department: document.getElementById("department").value,
+          year: document.getElementById("year").value,
+          leave_type: document.getElementById("leaveType").value,
+          from_date: document.getElementById("fromDate").value,
+          to_date: document.getElementById("toDate").value,
+          reason: document.getElementById("reason").value,
+        };
+
+        try {
+          const response = await fetch("http://localhost:4000/submit-leave", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
+
+          const result = await response.json();
+          alert(result.message);
+          document.getElementById("leaveForm").reset();
+          updateLeaveCount(formData.student_rollno);
+        } catch (error) {
+          console.error("Fetch error:", error);
+          alert("Error submitting form.");
+        }
+      });
+
+      async function updateLeaveCount(rollNo) {
+        try {
+          const response = await fetch(`http://localhost:4000/get-leave-count?student_rollno=${rollNo}`);
+          const data = await response.json();
+
+          document.getElementById("leaveCount").innerText = 
+            `Casual Leave: ${data.casual || 0} | Phone Leave: ${data.phone || 0} | On Duty: ${data.on_duty || 0}`;
+        } catch (error) {
+          console.error("Error fetching leave count:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
